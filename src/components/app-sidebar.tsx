@@ -1,0 +1,135 @@
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  Car,
+  LayoutDashboard,
+  CalendarPlus,
+  ListChecks,
+  ClipboardCheck,
+  Settings,
+  Users,
+  LogOut,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { useAuth, hasAnyRole } from "@/lib/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+
+const mainItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Katalog Kendaraan", url: "/kendaraan", icon: Car },
+  { title: "Ajukan Reservasi", url: "/reservasi/baru", icon: CalendarPlus },
+  { title: "Reservasi Saya", url: "/reservasi", icon: ListChecks },
+];
+
+const staffItems = [
+  { title: "Persetujuan", url: "/approval", icon: ClipboardCheck },
+];
+
+const adminItems = [
+  { title: "Kelola Kendaraan", url: "/admin/kendaraan", icon: Settings },
+  { title: "Kelola Pengguna", url: "/admin/pengguna", icon: Users },
+];
+
+export function AppSidebar() {
+  const { roles, profile, user } = useAuth();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
+  const isStaff = hasAnyRole(roles, ["staf", "admin"]);
+  const isAdmin = hasAnyRole(roles, ["admin"]);
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <Link to="/dashboard" className="flex items-center gap-2 px-2 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Car className="h-4 w-4" />
+          </div>
+          <span className="font-bold text-sidebar-foreground">CampusRide</span>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {isStaff && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Staf</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {staffItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+      <SidebarFooter>
+        <div className="px-2 py-2 text-xs text-sidebar-foreground/80">
+          <div className="font-medium truncate">{profile?.full_name || user?.email}</div>
+          <div className="truncate opacity-70">{roles.join(", ") || "—"}</div>
+        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => supabase.auth.signOut()}>
+              <LogOut className="h-4 w-4" />
+              <span>Keluar</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
