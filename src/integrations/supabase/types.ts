@@ -14,16 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          nim_nip: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string
+          id: string
+          nim_nip?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          nim_nip?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reservations: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          decided_at: string | null
+          destination: string
+          end_at: string
+          id: string
+          pickup_location: string
+          purpose: string
+          rejection_reason: string | null
+          start_at: string
+          status: Database["public"]["Enums"]["reservation_status"]
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          destination: string
+          end_at: string
+          id?: string
+          pickup_location: string
+          purpose: string
+          rejection_reason?: string | null
+          start_at: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          updated_at?: string
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          destination?: string
+          end_at?: string
+          id?: string
+          pickup_location?: string
+          purpose?: string
+          rejection_reason?: string | null
+          start_at?: string
+          status?: Database["public"]["Enums"]["reservation_status"]
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          brand: string
+          capacity: number
+          created_at: string
+          id: string
+          model: string
+          notes: string | null
+          photo_url: string | null
+          plate_number: string
+          status: Database["public"]["Enums"]["vehicle_status"]
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          brand: string
+          capacity?: number
+          created_at?: string
+          id?: string
+          model: string
+          notes?: string | null
+          photo_url?: string | null
+          plate_number: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          brand?: string
+          capacity?: number
+          created_at?: string
+          id?: string
+          model?: string
+          notes?: string | null
+          photo_url?: string | null
+          plate_number?: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "mahasiswa" | "dosen" | "staf" | "admin"
+      reservation_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "completed"
+      vehicle_status: "available" | "maintenance" | "unavailable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +311,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["mahasiswa", "dosen", "staf", "admin"],
+      reservation_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "completed",
+      ],
+      vehicle_status: ["available", "maintenance", "unavailable"],
+    },
   },
 } as const
