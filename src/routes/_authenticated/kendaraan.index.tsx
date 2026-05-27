@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Car, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_authenticated/kendaraan")({
+export const Route = createFileRoute("/_authenticated/kendaraan/")({
   component: VehiclesPage,
 });
 
