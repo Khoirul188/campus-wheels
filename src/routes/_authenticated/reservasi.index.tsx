@@ -10,7 +10,7 @@ import { formatDateTime } from "@/lib/format";
 import { cancelReservation } from "@/lib/reservations.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/reservasi")({
+export const Route = createFileRoute("/_authenticated/reservasi/")({
   component: ReservationsPage,
 });
 
