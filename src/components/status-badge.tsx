@@ -8,6 +8,7 @@ const styles: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/30",
   cancelled: "bg-muted text-muted-foreground border-border",
   completed: "bg-accent text-accent-foreground border-accent",
+  in_use: "bg-primary/15 text-primary border-primary/30",
   available: "bg-success/15 text-[color:var(--success)] border-success/30",
   maintenance: "bg-warning/15 text-warning-foreground border-warning/30",
   unavailable: "bg-muted text-muted-foreground border-border",

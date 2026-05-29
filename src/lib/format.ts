@@ -22,6 +22,7 @@ export const statusLabel: Record<string, string> = {
   rejected: "Ditolak",
   cancelled: "Dibatalkan",
   completed: "Selesai",
+  in_use: "Sedang Dipinjam",
   available: "Tersedia",
   maintenance: "Perawatan",
   unavailable: "Tidak Tersedia",
