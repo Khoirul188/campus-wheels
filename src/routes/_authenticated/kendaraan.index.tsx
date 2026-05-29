@@ -21,6 +21,24 @@ function VehiclesPage() {
       return data ?? [];
     },
   });
+  const { data: activeNow } = useQuery({
+    queryKey: ["vehicles-active-now"],
+    queryFn: async () => {
+      const nowIso = new Date().toISOString();
+      const { data } = await supabase
+        .from("reservations")
+        .select("vehicle_id, status")
+        .in("status", ["approved", "in_use"])
+        .lte("start_at", nowIso)
+        .gt("end_at", nowIso);
+      return new Set((data ?? []).map((r: any) => r.vehicle_id));
+    },
+  });
+  const effectiveStatus = (v: any): string => {
+    if (v.status !== "available") return v.status;
+    if (activeNow?.has(v.id)) return "unavailable";
+    return "available";
+  };
   const filtered = (data ?? []).filter((v: any) => {
     const s = q.toLowerCase();
     return (
@@ -60,7 +78,7 @@ function VehiclesPage() {
                   <div className="font-semibold">{v.brand} {v.model}</div>
                   <div className="text-xs text-muted-foreground">{v.year} • {v.plate_number}</div>
                 </div>
-                <StatusBadge status={v.status} />
+                <StatusBadge status={effectiveStatus(v)} />
               </div>
               <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {v.capacity} kursi
