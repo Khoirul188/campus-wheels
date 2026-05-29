@@ -1,143 +1,106 @@
 
-# Rencana Pembangunan CampusRide (MVP v1)
+# Update CampusRide v1.1 — Status Otomatis & Pengembalian Kendaraan
 
-Aplikasi web peminjaman kendaraan operasional kampus, antarmuka **Bahasa Indonesia**, gaya **clean modern dengan aksen biru kampus**, dibangun di atas TanStack Start + Lovable Cloud (Supabase).
-
----
-
-## 1. Lingkup MVP
-
-Diimplementasikan sekarang:
-- Autentikasi (email/password) + reset password
-- Manajemen akun: mahasiswa & dosen self-signup; staf/admin dibuat oleh admin
-- Katalog kendaraan dengan foto, filter, status
-- Reservasi kendaraan dengan validasi bentrok jadwal
-- Pembatalan reservasi
-- Approval/penolakan oleh staf (wajib alasan saat tolak)
-- Dashboard sesuai peran (mahasiswa/dosen, staf, admin)
-- Riwayat reservasi pribadi
-- Manajemen kendaraan oleh admin (CRUD)
-- Manajemen pengguna & role oleh admin
-
-Ditunda (sesuai PRD Out of Scope + penyederhanaan MVP):
-- Email otomatis (Resend), notifikasi in-app real-time
-- Laporan utilisasi & ekspor PDF/CSV mendalam
-- Audit log lengkap (hanya logging dasar)
-- GPS, pembayaran, mobile native
+Menambahkan dua kemampuan utama dari PRD v1.1:
+1. **Status kendaraan otomatis** mengikuti reservasi aktif (tidak lagi manual).
+2. **Proses pengembalian kendaraan** dengan upload foto bukti di garasi.
 
 ---
 
-## 2. Peran & Hak Akses
+## 1. Perubahan Database
 
-| Role | Akses |
-|------|-------|
-| `mahasiswa` | Katalog, ajukan/batal reservasi, riwayat sendiri |
-| `dosen` | Sama seperti mahasiswa |
-| `staf` | Lihat semua reservasi, setujui/tolak, kelola jadwal |
-| `admin` | Semua hak staf + CRUD kendaraan + kelola user/role |
+### Tabel `reservations` — kolom baru
+- `actual_pickup_time timestamptz` — waktu kendaraan mulai dipakai
+- `actual_return_time timestamptz` — waktu pengembalian aktual
+- `return_proof_url text` — URL foto bukti pengembalian
+- `return_photo_uploaded_at timestamptz`
+- `return_photo_uploaded_by uuid`
+- `returned_by uuid` — staf yang memverifikasi
 
-Self-signup default role = `mahasiswa`. Saat signup, user memilih `mahasiswa` atau `dosen`. Admin dapat mempromosi user menjadi `staf`/`admin` di panel admin.
+### Enum `reservation_status` — tambah nilai baru
+- Tambah `in_use` (Sedang Dipinjam). Status existing tetap: `pending`, `approved`, `rejected`, `cancelled`, `completed`.
 
----
+### Storage bucket baru: `return-proofs` (public read)
+- Policy: authenticated insert; user hanya bisa upload di folder `{reservation_id}/`; staf/admin dapat membaca semua.
+- Validasi MIME (jpg/jpeg/png) & ukuran ≤5MB dilakukan di server function sebelum panggilan upload.
 
-## 3. Halaman / Rute
-
-```
-/                           Landing (hero, fitur, CTA login)
-/login                      Login
-/signup                     Daftar (mahasiswa/dosen)
-/reset-password             Set password baru (recovery)
-/_authenticated/
-  dashboard                 Dashboard sesuai role
-  kendaraan                 Katalog + filter
-  kendaraan/$id             Detail kendaraan + kalender ketersediaan
-  reservasi/baru            Form ajukan reservasi
-  reservasi                 Riwayat reservasi (saya)
-  reservasi/$id             Detail reservasi
-  /_staf/
-    approval                Antrian persetujuan
-    jadwal                  Kalender semua kendaraan
-  /_admin/
-    kendaraan-kelola        CRUD kendaraan
-    pengguna                Kelola user & role
-```
+### Status kendaraan: tetap manual untuk maintenance/unavailable admin-set
+- Kolom `vehicles.status` tetap, tetapi UI ketersediaan kendaraan **dihitung dinamis** dari reservasi aktif (`approved` atau `in_use` yang mencakup `now()`), bukan dari kolom statis. Ini menghindari race condition & menyesuaikan FR-14.
+- Admin tetap bisa set `maintenance`/`unavailable` manual; status efektif = manual jika non-`available`, selain itu dihitung dari reservasi.
+- Pada katalog & form reservasi, gunakan helper `getEffectiveVehicleStatus(vehicle, now)` di server function.
 
 ---
 
-## 4. Skema Database (Lovable Cloud / Supabase)
+## 2. Server Functions Baru (`src/lib/reservations.functions.ts`)
 
-**Enum `app_role`**: `mahasiswa`, `dosen`, `staf`, `admin`
-**Enum `reservation_status`**: `pending`, `approved`, `rejected`, `cancelled`, `completed`
+### `startReservation({ id })`
+- Hanya staf/admin atau pemilik reservasi.
+- Syarat: status `approved`.
+- Set `status='in_use'`, `actual_pickup_time=now()`.
 
-Tabel:
-- `profiles` (id → auth.users, full_name, nim_nip, phone, created_at)
-- `user_roles` (id, user_id, role) — tabel terpisah, akses via fungsi `has_role()` security definer
-- `vehicles` (id, brand, model, year, plate_number, capacity, photo_url, status, notes, created_at)
-- `reservations` (id, user_id, vehicle_id, start_at, end_at, pickup_location, destination, purpose, status, rejection_reason, approved_by, decided_at, created_at)
+### `completeReservation({ id, photo_path })`
+- Pemilik reservasi atau staf/admin.
+- Syarat: status `approved` atau `in_use`.
+- Wajib `photo_path` (sudah di-upload ke `return-proofs/{reservation_id}/...`).
+- Validasi file metadata (ada di storage, content-type valid, size ≤5MB) via `supabaseAdmin.storage`.
+- Set `status='completed'`, `actual_return_time=now()`, `return_proof_url`, `return_photo_uploaded_at=now()`, `return_photo_uploaded_by=userId`, `returned_by=userId` (jika staf).
 
-RLS:
-- `profiles`: user baca/edit miliknya; staf/admin baca semua
-- `vehicles`: semua authenticated baca; hanya admin tulis
-- `reservations`: user lihat & buat & cancel miliknya (selama `pending`); staf/admin lihat & ubah status semua
-- `user_roles`: hanya admin tulis; user baca role miliknya
+### Update `createReservation` & `decideReservation`
+- Overlap check sertakan status baru `in_use`.
 
-Trigger: auto-buat row `profiles` + role default `mahasiswa` saat signup.
-
-Storage bucket `vehicle-photos` (public read) untuk foto kendaraan.
-
----
-
-## 5. Validasi Bentrok Jadwal
-
-Server function `createReservation`:
-1. Validasi input (zod): end > start, semua field wajib terisi
-2. Query overlap: ada reservasi `pending`/`approved` di kendaraan yang sama dengan `start_at < new.end AND end_at > new.start` → tolak
-3. Insert dengan status `pending`
-
-Approval staf juga re-check bentrok sebelum set `approved` (mencegah race condition).
+### Helper `getEffectiveVehicleStatus`
+- Dipakai oleh katalog dan halaman detail untuk menampilkan badge real-time.
 
 ---
 
-## 6. Desain Visual
+## 3. Perubahan UI
 
-- Palette: biru kampus (`oklch` primary ~#1e40af area), background putih bersih, abu netral, aksen sukses/peringatan
-- Token didefinisikan di `src/styles.css` (light + dark mode)
-- shadcn/ui untuk komponen (Card, Table, Dialog, Calendar, Form)
-- Layout responsif: sidebar di desktop, bottom-nav/sheet di mobile
-- Status badge berwarna sesuai status reservasi
+### `kendaraan.index.tsx` & `kendaraan.$id.tsx`
+- Tampilkan status efektif (Tersedia / Tidak Tersedia / Maintenance) berdasar reservasi aktif.
 
----
+### `reservasi.index.tsx` (Riwayat user)
+- Tombol baru pada baris status `approved` → **"Mulai Pinjam"** (opsional, jika pengguna sendiri ambil kendaraan).
+- Tombol pada `approved`/`in_use` → **"Kembalikan Kendaraan"** membuka dialog upload foto.
+- Dialog upload: file picker (jpg/jpeg/png, ≤5MB), preview, upload ke bucket `return-proofs/{reservation_id}/{uuid}.{ext}` lalu panggil `completeReservation`.
 
-## 7. Detail Teknis
+### `approval.tsx` (Staf)
+- Tambah tab/section "Sedang Dipinjam" dan "Menunggu Pengembalian".
+- Staf dapat menekan **"Verifikasi Pengembalian"** untuk reservasi `in_use` (upload foto + complete) atau cukup melihat foto yang diunggah user lalu konfirmasi.
+- Tampilkan thumbnail `return_proof_url` + metadata (siapa upload, kapan).
 
-- **Framework**: TanStack Start (sudah terpasang) + React 19 + Tailwind v4
-- **Backend**: Lovable Cloud (Supabase) — diaktifkan di awal implementasi
-- **Auth**: Supabase Auth email/password, broker untuk OAuth tidak digunakan (sesuai pilihan)
-- **Data fetching**: `createServerFn` + `requireSupabaseAuth` middleware, TanStack Query untuk caching di komponen
-- **Form**: react-hook-form + zod
-- **Tanggal**: `date-fns` + shadcn Calendar (dengan `pointer-events-auto`)
-- **Route guard**: `_authenticated` layout (cek session), nested `_staf`/`_admin` cek role via `has_role()` di server function yang dipanggil loader
+### Dashboard
+- Staf: kartu "Kendaraan Sedang Dipinjam" (count `in_use`) dan "Menunggu Pengembalian".
+- Detail menampilkan pengguna, kendaraan, waktu mulai, estimasi selesai.
 
----
+### `StatusBadge`
+- Tambah varian `in_use` (Sedang Dipinjam) — warna biru/info.
 
-## 8. Urutan Implementasi
-
-1. Aktifkan Lovable Cloud
-2. Migration: enum, tabel, RLS, trigger, fungsi `has_role`, storage bucket
-3. Setup design tokens biru kampus + layout shell (header, sidebar, mobile nav) berbahasa Indonesia
-4. Auth: signup, login, reset-password, logout, route guards
-5. Seed: 1 admin awal (manual via SQL, info diberikan ke user), beberapa kendaraan contoh
-6. Katalog kendaraan + halaman detail
-7. Form reservasi + validasi bentrok + halaman daftar/detail reservasi user
-8. Halaman approval staf (approve/reject dengan alasan) + kalender jadwal
-9. Panel admin: CRUD kendaraan (dengan upload foto), kelola user/role
-10. Dashboard sesuai role dengan ringkasan statistik
-11. Landing page + polish UI
+### `src/lib/format.ts`
+- Tambah label `in_use: "Sedang Dipinjam"`.
 
 ---
 
-## 9. Catatan
+## 4. Validasi & Aturan
+- File: hanya jpg/jpeg/png, max 5MB, min 1 foto. Penolakan jelas di toast Indonesia.
+- Tidak bisa `complete` tanpa `return_proof_url`.
+- Tidak bisa start/complete pada status yang tidak sesuai (server-side guard).
+- Overlap reservasi memperhitungkan `in_use`.
 
-- Akun admin pertama akan disiapkan via SQL seed. Setelah implementasi saya berikan kredensial agar Anda bisa login dan mengelola staf/admin lain.
-- Notifikasi email & laporan lengkap dapat ditambahkan di iterasi berikutnya — beri tahu kapan siap dilanjutkan.
+---
 
+## 5. Out of Scope (tetap ditunda)
+- Email notifikasi otomatis (FR-18) — tetap untuk iterasi berikutnya.
+- Laporan utilisasi & ekspor (FR-25/26) — belum.
+- Pemindaian malware file upload (NFR-07) — gunakan validasi MIME/size dasar dulu.
+
+---
+
+## 6. Urutan Eksekusi
+1. Migration: kolom baru `reservations`, tambah enum `in_use`, buat bucket `return-proofs` + policies.
+2. Update server functions (`reservations.functions.ts`): `startReservation`, `completeReservation`, sesuaikan overlap, helper effective status.
+3. Update `format.ts` + `StatusBadge` varian baru.
+4. Update katalog & detail kendaraan untuk status efektif.
+5. Update `reservasi.index.tsx`: dialog upload foto + tombol kembalikan.
+6. Update `approval.tsx`: section in_use & verifikasi pengembalian.
+7. Update dashboard staf.
+8. Verifikasi alur end-to-end: pending → approved → in_use → completed.

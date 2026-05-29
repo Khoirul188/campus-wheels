@@ -43,6 +43,8 @@ export type Database = {
       }
       reservations: {
         Row: {
+          actual_pickup_time: string | null
+          actual_return_time: string | null
           approved_by: string | null
           created_at: string
           decided_at: string | null
@@ -52,6 +54,10 @@ export type Database = {
           pickup_location: string
           purpose: string
           rejection_reason: string | null
+          return_photo_uploaded_at: string | null
+          return_photo_uploaded_by: string | null
+          return_proof_url: string | null
+          returned_by: string | null
           start_at: string
           status: Database["public"]["Enums"]["reservation_status"]
           updated_at: string
@@ -59,6 +65,8 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          actual_pickup_time?: string | null
+          actual_return_time?: string | null
           approved_by?: string | null
           created_at?: string
           decided_at?: string | null
@@ -68,6 +76,10 @@ export type Database = {
           pickup_location: string
           purpose: string
           rejection_reason?: string | null
+          return_photo_uploaded_at?: string | null
+          return_photo_uploaded_by?: string | null
+          return_proof_url?: string | null
+          returned_by?: string | null
           start_at: string
           status?: Database["public"]["Enums"]["reservation_status"]
           updated_at?: string
@@ -75,6 +87,8 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          actual_pickup_time?: string | null
+          actual_return_time?: string | null
           approved_by?: string | null
           created_at?: string
           decided_at?: string | null
@@ -84,6 +98,10 @@ export type Database = {
           pickup_location?: string
           purpose?: string
           rejection_reason?: string | null
+          return_photo_uploaded_at?: string | null
+          return_photo_uploaded_by?: string | null
+          return_proof_url?: string | null
+          returned_by?: string | null
           start_at?: string
           status?: Database["public"]["Enums"]["reservation_status"]
           updated_at?: string
@@ -184,6 +202,7 @@ export type Database = {
         | "rejected"
         | "cancelled"
         | "completed"
+        | "in_use"
       vehicle_status: "available" | "maintenance" | "unavailable"
     }
     CompositeTypes: {
@@ -319,6 +338,7 @@ export const Constants = {
         "rejected",
         "cancelled",
         "completed",
+        "in_use",
       ],
       vehicle_status: ["available", "maintenance", "unavailable"],
     },
