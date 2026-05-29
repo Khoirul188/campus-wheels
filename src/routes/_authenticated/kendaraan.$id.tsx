@@ -27,7 +27,7 @@ function VehicleDetailPage() {
         .from("reservations")
         .select("id, start_at, end_at, status")
         .eq("vehicle_id", id)
-        .in("status", ["pending", "approved"])
+        .in("status", ["pending", "approved", "in_use"])
         .gte("end_at", new Date().toISOString())
         .order("start_at");
       return data ?? [];
@@ -35,6 +35,16 @@ function VehicleDetailPage() {
   });
 
   if (!vehicle) return <div className="text-muted-foreground">Memuat...</div>;
+
+  const nowIso = new Date().toISOString();
+  const inUseNow = (upcoming ?? []).some(
+    (r: any) =>
+      (r.status === "approved" || r.status === "in_use") &&
+      r.start_at <= nowIso &&
+      r.end_at > nowIso,
+  );
+  const effective =
+    vehicle.status !== "available" ? vehicle.status : inUseNow ? "unavailable" : "available";
 
   return (
     <div className="space-y-6">
@@ -55,7 +65,7 @@ function VehicleDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Status</span>
-              <StatusBadge status={vehicle.status} />
+              <StatusBadge status={effective} />
             </div>
             <Row label="Tahun" value={String(vehicle.year)} />
             <Row label="Plat Nomor" value={vehicle.plate_number} />
