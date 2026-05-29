@@ -24,7 +24,7 @@ export const createReservation = createServerFn({ method: "POST" })
       .from("reservations")
       .select("id")
       .eq("vehicle_id", data.vehicle_id)
-      .in("status", ["pending", "approved"])
+      .in("status", ["pending", "approved", "in_use"])
       .lt("start_at", data.end_at)
       .gt("end_at", data.start_at)
       .limit(1);
@@ -114,7 +114,7 @@ export const decideReservation = createServerFn({ method: "POST" })
         .from("reservations")
         .select("id")
         .eq("vehicle_id", cur.vehicle_id)
-        .eq("status", "approved")
+        .in("status", ["approved", "in_use"])
         .lt("start_at", cur.end_at)
         .gt("end_at", cur.start_at)
         .neq("id", data.id)
@@ -134,5 +134,98 @@ export const decideReservation = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+async function isStaff(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  return (data ?? []).some((r: any) => r.role === "staf" || r.role === "admin");
+}
+
+export const startReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: r, error } = await supabase
+      .from("reservations")
+      .select("user_id, status")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    const staff = await isStaff(supabase, userId);
+    if (r.user_id !== userId && !staff) throw new Error("Tidak diizinkan.");
+    if (r.status !== "approved") {
+      throw new Error("Hanya reservasi disetujui yang bisa dimulai.");
+    }
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({ status: "in_use", actual_pickup_time: new Date().toISOString() })
+      .eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
+    return { ok: true };
+  });
+
+export const completeReservation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        photo_path: z.string().min(1).max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: r, error } = await supabase
+      .from("reservations")
+      .select("id, user_id, status")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    const staff = await isStaff(supabase, userId);
+    if (r.user_id !== userId && !staff) throw new Error("Tidak diizinkan.");
+    if (r.status !== "approved" && r.status !== "in_use") {
+      throw new Error("Reservasi tidak bisa diselesaikan pada status ini.");
+    }
+    // Validasi path: harus diawali dengan {reservation_id}/
+    if (!data.photo_path.startsWith(`${data.id}/`)) {
+      throw new Error("Path foto tidak valid.");
+    }
+    // Pastikan file ada di storage
+    const folder = data.id;
+    const fileName = data.photo_path.slice(folder.length + 1);
+    const { data: list, error: lErr } = await supabase.storage
+      .from("return-proofs")
+      .list(folder, { search: fileName });
+    if (lErr) throw new Error(lErr.message);
+    const file = (list ?? []).find((f: any) => f.name === fileName);
+    if (!file) throw new Error("Foto bukti belum berhasil diunggah.");
+    const sizeBytes = (file.metadata as any)?.size ?? 0;
+    if (sizeBytes > 5 * 1024 * 1024) {
+      throw new Error("Ukuran foto melebihi 5 MB.");
+    }
+    const mime = (file.metadata as any)?.mimetype as string | undefined;
+    if (mime && !["image/jpeg", "image/jpg", "image/png"].includes(mime)) {
+      throw new Error("Format foto harus JPG/JPEG/PNG.");
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: uErr } = await supabase
+      .from("reservations")
+      .update({
+        status: "completed",
+        actual_return_time: nowIso,
+        return_proof_url: data.photo_path,
+        return_photo_uploaded_at: nowIso,
+        return_photo_uploaded_by: userId,
+        returned_by: staff ? userId : null,
+      })
+      .eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
     return { ok: true };
   });
