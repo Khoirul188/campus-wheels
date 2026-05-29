@@ -24,11 +24,14 @@ function DashboardPage() {
     queryKey: ["dashboard-stats", user?.id, isStaff],
     enabled: !!user,
     queryFn: async () => {
-      const [myRes, vehAvail, pendingAll] = await Promise.all([
+      const [myRes, vehAvail, pendingAll, inUseAll] = await Promise.all([
         supabase.from("reservations").select("id, status", { count: "exact", head: false }).eq("user_id", user!.id),
         supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("status", "available"),
         isStaff
           ? supabase.from("reservations").select("id", { count: "exact", head: true }).eq("status", "pending")
+          : Promise.resolve({ count: 0 } as any),
+        isStaff
+          ? supabase.from("reservations").select("id", { count: "exact", head: true }).eq("status", "in_use")
           : Promise.resolve({ count: 0 } as any),
       ]);
       return {
@@ -37,6 +40,7 @@ function DashboardPage() {
         myApproved: myRes.data?.filter((r) => r.status === "approved").length ?? 0,
         vehiclesAvailable: vehAvail.count ?? 0,
         pendingApprovals: (pendingAll as any).count ?? 0,
+        inUseCount: (inUseAll as any).count ?? 0,
       };
     },
   });
@@ -95,12 +99,19 @@ function DashboardPage() {
       {isStaff && (
         <Card>
           <CardHeader>
-            <CardTitle>Antrian Persetujuan</CardTitle>
+            <CardTitle>Operasional Kendaraan</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Ada <strong>{stats?.pendingApprovals ?? 0}</strong> reservasi menunggu persetujuan.
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-border p-3">
+                <div className="text-2xl font-bold">{stats?.pendingApprovals ?? 0}</div>
+                <div className="text-xs text-muted-foreground">Menunggu persetujuan</div>
+              </div>
+              <div className="rounded-lg border border-border p-3">
+                <div className="text-2xl font-bold">{stats?.inUseCount ?? 0}</div>
+                <div className="text-xs text-muted-foreground">Sedang dipinjam</div>
+              </div>
+            </div>
             <Button asChild className="mt-3"><Link to="/approval">Buka Persetujuan</Link></Button>
           </CardContent>
         </Card>
