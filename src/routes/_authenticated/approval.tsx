@@ -222,7 +222,9 @@ function ApprovalPage() {
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} placeholder="Tuliskan alasan..." />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectId(null)}>Batal</Button>
-            <Button onClick={onReject} disabled={!reason.trim()}>Tolak Reservasi</Button>
+            <Button onClick={onReject} disabled={!reason.trim() || !!busyId}>
+              {busyId ? "Memproses..." : "Tolak Reservasi"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
