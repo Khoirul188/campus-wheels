@@ -119,16 +119,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <div className="px-2 py-2 text-xs text-sidebar-foreground/80">
           <div className="font-medium truncate">{profile?.full_name || user?.email}</div>
-          <div className="truncate opacity-70">{roles.join(", ") || "—"}</div>
         </div>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => supabase.auth.signOut()}>
-              <LogOut className="h-4 w-4" />
-              <span>Keluar</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

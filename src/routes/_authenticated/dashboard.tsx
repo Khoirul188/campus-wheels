@@ -73,9 +73,6 @@ function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Halo, {profile?.full_name || user?.email}</h2>
-        <p className="text-sm text-muted-foreground">
-          Peran: {roles.length ? roles.map((r) => roleLabel[r]).join(", ") : "—"}
-        </p>
       </div>
 
       {roles.length === 0 && (
