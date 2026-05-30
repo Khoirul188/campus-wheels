@@ -43,6 +43,7 @@ function ApprovalPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["approval-list", tab],
@@ -63,16 +64,22 @@ function ApprovalPage() {
     return <div className="text-destructive">Akses ditolak. Khusus staf/admin.</div>;
 
   async function onApprove(id: string) {
+    if (busyId) return;
+    setBusyId(id);
     try {
       await decide({ data: { id, decision: "approved" } });
       toast.success("Reservasi disetujui");
       qc.invalidateQueries({ queryKey: ["approval-list"] });
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      setBusyId(null);
     }
   }
   async function onReject() {
     if (!rejectId) return;
+    if (busyId) return;
+    setBusyId(rejectId);
     try {
       await decide({ data: { id: rejectId, decision: "rejected", rejection_reason: reason } });
       toast.success("Reservasi ditolak");
@@ -81,6 +88,8 @@ function ApprovalPage() {
       qc.invalidateQueries({ queryKey: ["approval-list"] });
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -174,10 +183,12 @@ function ApprovalPage() {
                     <div className="flex flex-wrap justify-end gap-2">
                       {r.status === "pending" && (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => { setRejectId(r.id); setReason(""); }}>
+                          <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => { setRejectId(r.id); setReason(""); }}>
                             Tolak
                           </Button>
-                          <Button size="sm" onClick={() => onApprove(r.id)}>Setujui</Button>
+                          <Button size="sm" disabled={busyId === r.id} onClick={() => onApprove(r.id)}>
+                            {busyId === r.id ? "Memproses..." : "Setujui"}
+                          </Button>
                         </>
                       )}
                       {r.status === "approved" && (
@@ -211,7 +222,9 @@ function ApprovalPage() {
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} placeholder="Tuliskan alasan..." />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectId(null)}>Batal</Button>
-            <Button onClick={onReject} disabled={!reason.trim()}>Tolak Reservasi</Button>
+            <Button onClick={onReject} disabled={!reason.trim() || !!busyId}>
+              {busyId ? "Memproses..." : "Tolak Reservasi"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
