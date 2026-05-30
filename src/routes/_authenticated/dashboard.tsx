@@ -5,7 +5,7 @@ import { useAuth, hasAnyRole } from "@/lib/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
-import { formatDateTime, roleLabel } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { Car, CalendarPlus, ClipboardCheck, ListChecks } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { claimFirstAdmin } from "@/lib/admin.functions";
