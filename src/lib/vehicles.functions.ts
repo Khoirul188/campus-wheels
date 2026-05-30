@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const vehicleInput = z.object({
   brand: z.string().trim().min(1).max(80),
@@ -64,4 +65,42 @@ export const deleteVehicle = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * Returns vehicle IDs that are currently in use (approved or in_use reservations
+ * overlapping `now()`). Uses the admin client to bypass RLS so all authenticated
+ * users see real-time availability without exposing reservation details.
+ */
+export const getActiveVehicleIds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabaseAdmin
+      .from("reservations")
+      .select("vehicle_id")
+      .in("status", ["approved", "in_use"])
+      .lte("start_at", nowIso)
+      .gt("end_at", nowIso);
+    if (error) throw new Error(error.message);
+    return { ids: Array.from(new Set((data ?? []).map((r: any) => r.vehicle_id))) };
+  });
+
+/**
+ * Returns upcoming reservation windows for a single vehicle (no PII).
+ */
+export const getVehicleSchedule = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ vehicle_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const nowIso = new Date().toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from("reservations")
+      .select("id, start_at, end_at, status")
+      .eq("vehicle_id", data.vehicle_id)
+      .in("status", ["pending", "approved", "in_use"])
+      .gte("end_at", nowIso)
+      .order("start_at");
+    if (error) throw new Error(error.message);
+    return { schedule: rows ?? [] };
   });
