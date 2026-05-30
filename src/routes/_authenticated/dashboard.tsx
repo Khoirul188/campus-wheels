@@ -5,7 +5,7 @@ import { useAuth, hasAnyRole } from "@/lib/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
-import { formatDateTime, roleLabel } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { Car, CalendarPlus, ClipboardCheck, ListChecks } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { claimFirstAdmin } from "@/lib/admin.functions";
@@ -73,9 +73,6 @@ function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Halo, {profile?.full_name || user?.email}</h2>
-        <p className="text-sm text-muted-foreground">
-          Peran: {roles.length ? roles.map((r) => roleLabel[r]).join(", ") : "—"}
-        </p>
       </div>
 
       {roles.length === 0 && (

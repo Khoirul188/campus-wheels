@@ -1,106 +1,46 @@
+## Ringkasan Perubahan
 
-# Update CampusRide v1.1 — Status Otomatis & Pengembalian Kendaraan
+### 1. Menu Akun di Header (semua pengguna)
+- Tambahkan dropdown avatar di kanan header `src/routes/_authenticated.tsx` (di samping `<SidebarTrigger />`).
+- Isi dropdown: nama + email, **Profil Saya**, **Edit Profil**, **Ubah Password**, **Keluar**.
+- Pindahkan tombol "Keluar" dari sidebar footer ke dropdown ini (sidebar footer tetap menampilkan nama saja, tanpa daftar peran).
 
-Menambahkan dua kemampuan utama dari PRD v1.1:
-1. **Status kendaraan otomatis** mengikuti reservasi aktif (tidak lagi manual).
-2. **Proses pengembalian kendaraan** dengan upload foto bukti di garasi.
+### 2. Halaman Profil
+Buat route baru:
+- `src/routes/_authenticated/profil.tsx` — tampilan profil (nama, email, NIM/NIP, no. HP, peran sebagai badge — bukan teks "Peran: ...").
+- `src/routes/_authenticated/profil.edit.tsx` — form edit `full_name`, `nim_nip`, `phone` (update tabel `profiles`).
+- `src/routes/_authenticated/profil.password.tsx` — form ubah password (password baru + konfirmasi) memakai `supabase.auth.updateUser({ password })`. Tidak perlu password lama (Supabase tidak mewajibkan).
 
----
+### 3. Data Pemohon Terlihat oleh Staf/Admin
+Masalah: query `reservations` di `approval.tsx` tidak ikut menarik data profil pemohon (RLS profil sudah mengizinkan staf/admin lihat semua).
+- Ubah query di `src/routes/_authenticated/approval.tsx` menjadi:
+  ```ts
+  .select("*, vehicles(brand, model, plate_number), profiles:user_id(full_name, nim_nip, phone)")
+  ```
+  Jika join via FK tidak tersedia, fallback: query `profiles` terpisah berdasarkan kumpulan `user_id`, lalu gabungkan di klien.
+- Tampilkan blok "Pemohon" di setiap kartu reservasi: nama, NIM/NIP, no. HP, email.
+- Untuk email, tambahkan kolom `email` ke tabel `profiles` lewat migrasi + perbarui trigger `handle_new_user` agar mengisi `email = NEW.email`. (Backfill data lama dengan UPDATE dari `auth.users`.)
 
-## 1. Perubahan Database
+### 4. Kelola Pengguna Lengkap + Hapus Akun (Admin)
+Di `src/routes/_authenticated/admin.pengguna.tsx`:
+- Tampilkan kolom tambahan: email, tanggal daftar (`created_at`), no. HP, NIM/NIP (sudah ada sebagian).
+- Tambah tombol **Hapus Akun** per baris dengan dialog konfirmasi (ketik nama/"HAPUS" untuk konfirmasi).
+- Tambah server function baru di `src/lib/admin.functions.ts`: `deleteUser({ user_id })` — pakai `supabaseAdmin.auth.admin.deleteUser(user_id)` setelah `assertAdmin`. Cegah admin menghapus dirinya sendiri.
+- Setelah hapus, baris di `profiles`, `user_roles`, dan `reservations` ikut terhapus jika ada FK `on delete cascade`; jika tidak, lakukan cleanup eksplisit di handler.
 
-### Tabel `reservations` — kolom baru
-- `actual_pickup_time timestamptz` — waktu kendaraan mulai dipakai
-- `actual_return_time timestamptz` — waktu pengembalian aktual
-- `return_proof_url text` — URL foto bukti pengembalian
-- `return_photo_uploaded_at timestamptz`
-- `return_photo_uploaded_by uuid`
-- `returned_by uuid` — staf yang memverifikasi
+### 5. Hilangkan Tulisan "Peran: ..."
+- `src/routes/_authenticated/dashboard.tsx` — hapus paragraf "Peran: ...".
+- `src/components/app-sidebar.tsx` — hapus baris `{roles.join(", ")}` di footer.
+- Pastikan tidak ada teks "Peran:" tersisa di route lain (grep).
 
-### Enum `reservation_status` — tambah nilai baru
-- Tambah `in_use` (Sedang Dipinjam). Status existing tetap: `pending`, `approved`, `rejected`, `cancelled`, `completed`.
+## Catatan Teknis
 
-### Storage bucket baru: `return-proofs` (public read)
-- Policy: authenticated insert; user hanya bisa upload di folder `{reservation_id}/`; staf/admin dapat membaca semua.
-- Validasi MIME (jpg/jpeg/png) & ukuran ≤5MB dilakukan di server function sebelum panggilan upload.
+- Migrasi baru:
+  1. `ALTER TABLE public.profiles ADD COLUMN email text;`
+  2. Update `handle_new_user()` untuk mengisi `email`.
+  3. Backfill: `UPDATE profiles SET email = u.email FROM auth.users u WHERE profiles.id = u.id;`
+- Tidak perlu RLS baru — staf/admin sudah punya akses SELECT ke `profiles`.
+- `deleteUser` wajib server-side (service role); jangan panggil dari klien.
 
-### Status kendaraan: tetap manual untuk maintenance/unavailable admin-set
-- Kolom `vehicles.status` tetap, tetapi UI ketersediaan kendaraan **dihitung dinamis** dari reservasi aktif (`approved` atau `in_use` yang mencakup `now()`), bukan dari kolom statis. Ini menghindari race condition & menyesuaikan FR-14.
-- Admin tetap bisa set `maintenance`/`unavailable` manual; status efektif = manual jika non-`available`, selain itu dihitung dari reservasi.
-- Pada katalog & form reservasi, gunakan helper `getEffectiveVehicleStatus(vehicle, now)` di server function.
-
----
-
-## 2. Server Functions Baru (`src/lib/reservations.functions.ts`)
-
-### `startReservation({ id })`
-- Hanya staf/admin atau pemilik reservasi.
-- Syarat: status `approved`.
-- Set `status='in_use'`, `actual_pickup_time=now()`.
-
-### `completeReservation({ id, photo_path })`
-- Pemilik reservasi atau staf/admin.
-- Syarat: status `approved` atau `in_use`.
-- Wajib `photo_path` (sudah di-upload ke `return-proofs/{reservation_id}/...`).
-- Validasi file metadata (ada di storage, content-type valid, size ≤5MB) via `supabaseAdmin.storage`.
-- Set `status='completed'`, `actual_return_time=now()`, `return_proof_url`, `return_photo_uploaded_at=now()`, `return_photo_uploaded_by=userId`, `returned_by=userId` (jika staf).
-
-### Update `createReservation` & `decideReservation`
-- Overlap check sertakan status baru `in_use`.
-
-### Helper `getEffectiveVehicleStatus`
-- Dipakai oleh katalog dan halaman detail untuk menampilkan badge real-time.
-
----
-
-## 3. Perubahan UI
-
-### `kendaraan.index.tsx` & `kendaraan.$id.tsx`
-- Tampilkan status efektif (Tersedia / Tidak Tersedia / Maintenance) berdasar reservasi aktif.
-
-### `reservasi.index.tsx` (Riwayat user)
-- Tombol baru pada baris status `approved` → **"Mulai Pinjam"** (opsional, jika pengguna sendiri ambil kendaraan).
-- Tombol pada `approved`/`in_use` → **"Kembalikan Kendaraan"** membuka dialog upload foto.
-- Dialog upload: file picker (jpg/jpeg/png, ≤5MB), preview, upload ke bucket `return-proofs/{reservation_id}/{uuid}.{ext}` lalu panggil `completeReservation`.
-
-### `approval.tsx` (Staf)
-- Tambah tab/section "Sedang Dipinjam" dan "Menunggu Pengembalian".
-- Staf dapat menekan **"Verifikasi Pengembalian"** untuk reservasi `in_use` (upload foto + complete) atau cukup melihat foto yang diunggah user lalu konfirmasi.
-- Tampilkan thumbnail `return_proof_url` + metadata (siapa upload, kapan).
-
-### Dashboard
-- Staf: kartu "Kendaraan Sedang Dipinjam" (count `in_use`) dan "Menunggu Pengembalian".
-- Detail menampilkan pengguna, kendaraan, waktu mulai, estimasi selesai.
-
-### `StatusBadge`
-- Tambah varian `in_use` (Sedang Dipinjam) — warna biru/info.
-
-### `src/lib/format.ts`
-- Tambah label `in_use: "Sedang Dipinjam"`.
-
----
-
-## 4. Validasi & Aturan
-- File: hanya jpg/jpeg/png, max 5MB, min 1 foto. Penolakan jelas di toast Indonesia.
-- Tidak bisa `complete` tanpa `return_proof_url`.
-- Tidak bisa start/complete pada status yang tidak sesuai (server-side guard).
-- Overlap reservasi memperhitungkan `in_use`.
-
----
-
-## 5. Out of Scope (tetap ditunda)
-- Email notifikasi otomatis (FR-18) — tetap untuk iterasi berikutnya.
-- Laporan utilisasi & ekspor (FR-25/26) — belum.
-- Pemindaian malware file upload (NFR-07) — gunakan validasi MIME/size dasar dulu.
-
----
-
-## 6. Urutan Eksekusi
-1. Migration: kolom baru `reservations`, tambah enum `in_use`, buat bucket `return-proofs` + policies.
-2. Update server functions (`reservations.functions.ts`): `startReservation`, `completeReservation`, sesuaikan overlap, helper effective status.
-3. Update `format.ts` + `StatusBadge` varian baru.
-4. Update katalog & detail kendaraan untuk status efektif.
-5. Update `reservasi.index.tsx`: dialog upload foto + tombol kembalikan.
-6. Update `approval.tsx`: section in_use & verifikasi pengembalian.
-7. Update dashboard staf.
-8. Verifikasi alur end-to-end: pending → approved → in_use → completed.
+## Pertanyaan
+Tidak ada — lanjut implementasi setelah persetujuan rencana.
