@@ -55,7 +55,15 @@ function ApprovalPage() {
         .eq("status", tab as any)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      const userIds = Array.from(new Set(rows.map((r: any) => r.user_id))).filter(Boolean);
+      if (userIds.length === 0) return rows;
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, nim_nip, phone, email")
+        .in("id", userIds);
+      const map = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+      return rows.map((r: any) => ({ ...r, requester: map.get(r.user_id) ?? null }));
     },
   });
 
@@ -174,6 +182,15 @@ function ApprovalPage() {
                     </div>
                     <div className="text-sm"><strong>Tujuan:</strong> {r.destination}</div>
                     <div className="text-sm text-muted-foreground"><strong>Keperluan:</strong> {r.purpose}</div>
+                    {r.requester && (
+                      <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-xs">
+                        <div className="font-semibold text-foreground">Pemohon</div>
+                        <div>{r.requester.full_name || "—"}</div>
+                        <div className="text-muted-foreground">
+                          {r.requester.email || "—"} • {r.requester.nim_nip || "—"} • {r.requester.phone || "—"}
+                        </div>
+                      </div>
+                    )}
                     {r.rejection_reason && (
                       <div className="text-sm text-destructive"><strong>Alasan:</strong> {r.rejection_reason}</div>
                     )}
