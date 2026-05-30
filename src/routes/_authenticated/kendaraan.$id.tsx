@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
 import { Car, Users, Calendar } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { getVehicleSchedule } from "@/lib/vehicles.functions";
 
 export const Route = createFileRoute("/_authenticated/kendaraan/$id")({
   component: VehicleDetailPage,
@@ -20,17 +22,12 @@ function VehicleDetailPage() {
       return data;
     },
   });
+  const fetchSchedule = useServerFn(getVehicleSchedule);
   const { data: upcoming } = useQuery({
     queryKey: ["vehicle-schedule", id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("reservations")
-        .select("id, start_at, end_at, status")
-        .eq("vehicle_id", id)
-        .in("status", ["pending", "approved", "in_use"])
-        .gte("end_at", new Date().toISOString())
-        .order("start_at");
-      return data ?? [];
+      const res = await fetchSchedule({ data: { vehicle_id: id } });
+      return res.schedule;
     },
   });
 
