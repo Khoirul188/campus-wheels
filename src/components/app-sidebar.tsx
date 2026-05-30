@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   Settings,
   Users,
-  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -22,7 +21,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth, hasAnyRole } from "@/lib/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -42,6 +40,7 @@ const adminItems = [
 
 export function AppSidebar() {
   const { roles, profile, user } = useAuth();
+  void roles;
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const isStaff = hasAnyRole(roles, ["staf", "admin"]);
