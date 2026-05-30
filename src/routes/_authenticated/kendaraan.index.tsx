@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
 import { Car, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useServerFn } from "@tanstack/react-start";
+import { getActiveVehicleIds } from "@/lib/vehicles.functions";
 
 export const Route = createFileRoute("/_authenticated/kendaraan/")({
   component: VehiclesPage,
@@ -21,17 +23,12 @@ function VehiclesPage() {
       return data ?? [];
     },
   });
+  const fetchActive = useServerFn(getActiveVehicleIds);
   const { data: activeNow } = useQuery({
     queryKey: ["vehicles-active-now"],
     queryFn: async () => {
-      const nowIso = new Date().toISOString();
-      const { data } = await supabase
-        .from("reservations")
-        .select("vehicle_id, status")
-        .in("status", ["approved", "in_use"])
-        .lte("start_at", nowIso)
-        .gt("end_at", nowIso);
-      return new Set((data ?? []).map((r: any) => r.vehicle_id));
+      const res = await fetchActive();
+      return new Set(res.ids);
     },
   });
   const effectiveStatus = (v: any): string => {
