@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/use-auth";
+import { AccountMenu } from "@/components/account-menu";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
@@ -34,6 +35,9 @@ function AuthenticatedLayout() {
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
             <h1 className="font-semibold">CampusRide</h1>
+            <div className="ml-auto">
+              <AccountMenu />
+            </div>
           </header>
           <main className="flex-1 p-4 sm:p-6">
             <Outlet />
