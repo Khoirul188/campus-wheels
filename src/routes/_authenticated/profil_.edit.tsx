@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/profil/edit")({
+export const Route = createFileRoute("/_authenticated/profil_/edit")({
   component: EditProfilPage,
 });
 
