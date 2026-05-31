@@ -92,7 +92,7 @@ function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Kelola Pengguna</h2>
-        <p className="text-sm text-muted-foreground">Atur peran (role) pengguna</p>
+        <p className="text-sm text-muted-foreground">Atur status pengguna</p>
       </div>
       <div className="grid gap-3">
         {data?.map((u: any) => (

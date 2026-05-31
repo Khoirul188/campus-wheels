@@ -20,8 +20,8 @@ import { Route as AuthenticatedApprovalRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedReservasiIndexRouteImport } from './routes/_authenticated/reservasi.index'
 import { Route as AuthenticatedKendaraanIndexRouteImport } from './routes/_authenticated/kendaraan.index'
 import { Route as AuthenticatedReservasiBaruRouteImport } from './routes/_authenticated/reservasi.baru'
-import { Route as AuthenticatedProfilPasswordRouteImport } from './routes/_authenticated/profil.password'
-import { Route as AuthenticatedProfilEditRouteImport } from './routes/_authenticated/profil.edit'
+import { Route as AuthenticatedProfilPasswordRouteImport } from './routes/_authenticated/profil_.password'
+import { Route as AuthenticatedProfilEditRouteImport } from './routes/_authenticated/profil_.edit'
 import { Route as AuthenticatedKendaraanIdRouteImport } from './routes/_authenticated/kendaraan.$id'
 import { Route as AuthenticatedAdminPenggunaRouteImport } from './routes/_authenticated/admin.pengguna'
 import { Route as AuthenticatedAdminKendaraanRouteImport } from './routes/_authenticated/admin.kendaraan'
@@ -85,14 +85,14 @@ const AuthenticatedReservasiBaruRoute =
   } as any)
 const AuthenticatedProfilPasswordRoute =
   AuthenticatedProfilPasswordRouteImport.update({
-    id: '/password',
-    path: '/password',
-    getParentRoute: () => AuthenticatedProfilRoute,
+    id: '/profil_/password',
+    path: '/profil/password',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedProfilEditRoute = AuthenticatedProfilEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => AuthenticatedProfilRoute,
+  id: '/profil_/edit',
+  path: '/profil/edit',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedKendaraanIdRoute =
   AuthenticatedKendaraanIdRouteImport.update({
@@ -120,7 +120,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/approval': typeof AuthenticatedApprovalRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/profil': typeof AuthenticatedProfilRouteWithChildren
+  '/profil': typeof AuthenticatedProfilRoute
   '/admin/kendaraan': typeof AuthenticatedAdminKendaraanRoute
   '/admin/pengguna': typeof AuthenticatedAdminPenggunaRoute
   '/kendaraan/$id': typeof AuthenticatedKendaraanIdRoute
@@ -137,7 +137,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/approval': typeof AuthenticatedApprovalRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/profil': typeof AuthenticatedProfilRouteWithChildren
+  '/profil': typeof AuthenticatedProfilRoute
   '/admin/kendaraan': typeof AuthenticatedAdminKendaraanRoute
   '/admin/pengguna': typeof AuthenticatedAdminPenggunaRoute
   '/kendaraan/$id': typeof AuthenticatedKendaraanIdRoute
@@ -156,12 +156,12 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/approval': typeof AuthenticatedApprovalRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/profil': typeof AuthenticatedProfilRouteWithChildren
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/_authenticated/admin/kendaraan': typeof AuthenticatedAdminKendaraanRoute
   '/_authenticated/admin/pengguna': typeof AuthenticatedAdminPenggunaRoute
   '/_authenticated/kendaraan/$id': typeof AuthenticatedKendaraanIdRoute
-  '/_authenticated/profil/edit': typeof AuthenticatedProfilEditRoute
-  '/_authenticated/profil/password': typeof AuthenticatedProfilPasswordRoute
+  '/_authenticated/profil_/edit': typeof AuthenticatedProfilEditRoute
+  '/_authenticated/profil_/password': typeof AuthenticatedProfilPasswordRoute
   '/_authenticated/reservasi/baru': typeof AuthenticatedReservasiBaruRoute
   '/_authenticated/kendaraan/': typeof AuthenticatedKendaraanIndexRoute
   '/_authenticated/reservasi/': typeof AuthenticatedReservasiIndexRoute
@@ -214,8 +214,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/kendaraan'
     | '/_authenticated/admin/pengguna'
     | '/_authenticated/kendaraan/$id'
-    | '/_authenticated/profil/edit'
-    | '/_authenticated/profil/password'
+    | '/_authenticated/profil_/edit'
+    | '/_authenticated/profil_/password'
     | '/_authenticated/reservasi/baru'
     | '/_authenticated/kendaraan/'
     | '/_authenticated/reservasi/'
@@ -308,19 +308,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReservasiBaruRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/profil/password': {
-      id: '/_authenticated/profil/password'
-      path: '/password'
+    '/_authenticated/profil_/password': {
+      id: '/_authenticated/profil_/password'
+      path: '/profil/password'
       fullPath: '/profil/password'
       preLoaderRoute: typeof AuthenticatedProfilPasswordRouteImport
-      parentRoute: typeof AuthenticatedProfilRoute
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/profil/edit': {
-      id: '/_authenticated/profil/edit'
-      path: '/edit'
+    '/_authenticated/profil_/edit': {
+      id: '/_authenticated/profil_/edit'
+      path: '/profil/edit'
       fullPath: '/profil/edit'
       preLoaderRoute: typeof AuthenticatedProfilEditRouteImport
-      parentRoute: typeof AuthenticatedProfilRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/kendaraan/$id': {
       id: '/_authenticated/kendaraan/$id'
@@ -346,26 +346,15 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedProfilRouteChildren {
-  AuthenticatedProfilEditRoute: typeof AuthenticatedProfilEditRoute
-  AuthenticatedProfilPasswordRoute: typeof AuthenticatedProfilPasswordRoute
-}
-
-const AuthenticatedProfilRouteChildren: AuthenticatedProfilRouteChildren = {
-  AuthenticatedProfilEditRoute: AuthenticatedProfilEditRoute,
-  AuthenticatedProfilPasswordRoute: AuthenticatedProfilPasswordRoute,
-}
-
-const AuthenticatedProfilRouteWithChildren =
-  AuthenticatedProfilRoute._addFileChildren(AuthenticatedProfilRouteChildren)
-
 interface AuthenticatedRouteChildren {
   AuthenticatedApprovalRoute: typeof AuthenticatedApprovalRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedProfilRoute: typeof AuthenticatedProfilRouteWithChildren
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   AuthenticatedAdminKendaraanRoute: typeof AuthenticatedAdminKendaraanRoute
   AuthenticatedAdminPenggunaRoute: typeof AuthenticatedAdminPenggunaRoute
   AuthenticatedKendaraanIdRoute: typeof AuthenticatedKendaraanIdRoute
+  AuthenticatedProfilEditRoute: typeof AuthenticatedProfilEditRoute
+  AuthenticatedProfilPasswordRoute: typeof AuthenticatedProfilPasswordRoute
   AuthenticatedReservasiBaruRoute: typeof AuthenticatedReservasiBaruRoute
   AuthenticatedKendaraanIndexRoute: typeof AuthenticatedKendaraanIndexRoute
   AuthenticatedReservasiIndexRoute: typeof AuthenticatedReservasiIndexRoute
@@ -374,10 +363,12 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApprovalRoute: AuthenticatedApprovalRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedProfilRoute: AuthenticatedProfilRouteWithChildren,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   AuthenticatedAdminKendaraanRoute: AuthenticatedAdminKendaraanRoute,
   AuthenticatedAdminPenggunaRoute: AuthenticatedAdminPenggunaRoute,
   AuthenticatedKendaraanIdRoute: AuthenticatedKendaraanIdRoute,
+  AuthenticatedProfilEditRoute: AuthenticatedProfilEditRoute,
+  AuthenticatedProfilPasswordRoute: AuthenticatedProfilPasswordRoute,
   AuthenticatedReservasiBaruRoute: AuthenticatedReservasiBaruRoute,
   AuthenticatedKendaraanIndexRoute: AuthenticatedKendaraanIndexRoute,
   AuthenticatedReservasiIndexRoute: AuthenticatedReservasiIndexRoute,
@@ -397,13 +388,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
