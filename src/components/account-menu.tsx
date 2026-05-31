@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { User, KeyRound, UserCog, LogOut } from "lucide-react";
+import { User, UserCog, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -45,9 +45,6 @@ export function AccountMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/profil/edit"><UserCog className="mr-2 h-4 w-4" /> Edit Profil</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/profil/password"><KeyRound className="mr-2 h-4 w-4" /> Ubah Password</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
