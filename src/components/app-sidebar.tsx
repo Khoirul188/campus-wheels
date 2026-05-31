@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Car,
-  LayoutDashboard,
+  House,
   CalendarPlus,
   ListChecks,
   ClipboardCheck,
@@ -23,7 +23,7 @@ import {
 import { useAuth, hasAnyRole } from "@/lib/use-auth";
 
 const mainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: House },
   { title: "Katalog Kendaraan", url: "/kendaraan", icon: Car },
   { title: "Ajukan Reservasi", url: "/reservasi/baru", icon: CalendarPlus },
   { title: "Reservasi Saya", url: "/reservasi", icon: ListChecks },
