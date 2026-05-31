@@ -38,7 +38,7 @@ function ProfilPage() {
           <Row label="NIM / NIP" value={profile?.nim_nip} />
           <Row label="No. HP" value={profile?.phone} />
           <div className="grid grid-cols-3 gap-2 py-2">
-            <div className="text-sm text-muted-foreground">Peran</div>
+            <div className="text-sm text-muted-foreground">Status</div>
             <div className="col-span-2 flex flex-wrap gap-1">
               {roles.length ? roles.map((r) => (
                 <Badge key={r} variant="secondary">{roleLabel[r]}</Badge>
