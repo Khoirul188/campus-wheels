@@ -19,8 +19,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth, hasAnyRole } from "@/lib/use-auth";
+import logoUgm from "@/assets/logo-ugm.png";
+import campusRideText from "@/assets/campus-ride.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: House },
@@ -45,15 +48,21 @@ export function AppSidebar() {
   const isActive = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const isStaff = hasAnyRole(roles, ["staf", "admin"]);
   const isAdmin = hasAnyRole(roles, ["admin"]);
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Car className="h-4 w-4" />
-          </div>
-          <span className="font-bold text-sidebar-foreground">CampusRide</span>
+          <img src={logoUgm} alt="Logo UGM" className="h-8 w-8 shrink-0 object-contain" />
+          {!collapsed && (
+            <img
+              src={campusRideText}
+              alt="Campus Ride"
+              className="h-6 w-auto object-contain"
+            />
+          )}
         </Link>
       </SidebarHeader>
       <SidebarContent>
