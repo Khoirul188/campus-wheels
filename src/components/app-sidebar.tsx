@@ -54,13 +54,13 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <Link to="/dashboard" className="flex items-center gap-2 px-2 py-2">
-          <img src={logoUgm} alt="Logo UGM" className="h-8 w-8 shrink-0 object-contain" />
+        <Link to="/dashboard" className="flex items-center gap-2 px-1 py-2">
+          <img src={logoUgm} alt="Logo UGM" className="h-10 w-10 shrink-0 object-contain" />
           {!collapsed && (
             <img
               src={campusRideText}
               alt="Campus Ride"
-              className="h-6 w-auto object-contain"
+              className="h-8 w-auto object-contain"
             />
           )}
         </Link>
