@@ -1,6 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Car,
   House,
   CalendarPlus,
   ListChecks,
