@@ -158,7 +158,7 @@ function ApprovalPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="-mx-1 overflow-x-auto pb-1">
+        <div className="-mx-1 w-full overflow-x-auto touch-pan-x pb-1">
           <TabsList className="inline-flex h-auto w-max flex-nowrap gap-1">
             <TabsTrigger value="pending" className="whitespace-nowrap">Menunggu</TabsTrigger>
             <TabsTrigger value="approved" className="whitespace-nowrap">Disetujui</TabsTrigger>
