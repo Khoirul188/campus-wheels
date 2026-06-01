@@ -158,14 +158,16 @@ function ApprovalPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="pending">Menunggu</TabsTrigger>
-          <TabsTrigger value="approved">Disetujui</TabsTrigger>
-          <TabsTrigger value="in_use">Sedang Dipinjam</TabsTrigger>
-          <TabsTrigger value="completed">Selesai</TabsTrigger>
-          <TabsTrigger value="rejected">Ditolak</TabsTrigger>
-          <TabsTrigger value="cancelled">Dibatalkan</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto pb-1">
+          <TabsList className="inline-flex h-auto w-max flex-nowrap gap-1">
+            <TabsTrigger value="pending" className="whitespace-nowrap">Menunggu</TabsTrigger>
+            <TabsTrigger value="approved" className="whitespace-nowrap">Disetujui</TabsTrigger>
+            <TabsTrigger value="in_use" className="whitespace-nowrap">Sedang Dipinjam</TabsTrigger>
+            <TabsTrigger value="completed" className="whitespace-nowrap">Selesai</TabsTrigger>
+            <TabsTrigger value="rejected" className="whitespace-nowrap">Ditolak</TabsTrigger>
+            <TabsTrigger value="cancelled" className="whitespace-nowrap">Dibatalkan</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value={tab} className="mt-4 space-y-3">
           {!data?.length ? (
             <Card><CardContent className="p-12 text-center text-sm text-muted-foreground">Tidak ada data.</CardContent></Card>
