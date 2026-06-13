@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import campusRideLogo from "@/assets/campusride-full.png";
+import campusRideLogo from "@/assets/campusride-full.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,7 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
         <Link to="/" className="mb-6 flex items-center justify-center">
-          <img src={campusRideLogo} alt="CampusRide" className="h-12 w-auto object-contain" />
+          <img src={campusRideLogo.url} alt="CampusRide" className="h-12 w-auto object-contain" />
         </Link>
         <h1 className="text-2xl font-bold">Masuk</h1>
         <p className="mt-1 text-sm text-muted-foreground">Gunakan akun kampus Anda</p>
