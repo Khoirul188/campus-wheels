@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { Car, CalendarCheck, ShieldCheck, Users } from "lucide-react";
-import campusRideLogo from "@/assets/campusride-full.png.asset.json";
+import campusRideLogo from "@/assets/logokampusride.png";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -22,7 +22,7 @@ function Index() {
       <header className="border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src={campusRideLogo.url} alt="CampusRide" className="h-10 w-auto object-contain" />
+            <img src={campusRideLogo} alt="CampusRide" className="h-10 w-auto object-contain" />
           </Link>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost"><Link to="/login">Masuk</Link></Button>
