@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import logoUGMCR from "@/assets/logoUGMCR.png";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -64,11 +64,8 @@ function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
-        <Link to="/" className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Car className="h-5 w-5" />
-          </div>
-          <span className="font-bold">CampusRide</span>
+        <Link to="/" className="mb-6 flex items-center">
+          <img src={logoUGMCR} alt="Campus Ride" className="h-10 w-auto object-contain" />
         </Link>
         <h1 className="text-2xl font-bold">Daftar Akun</h1>
         <p className="mt-1 text-sm text-muted-foreground">Untuk mahasiswa & dosen</p>
