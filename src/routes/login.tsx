@@ -39,7 +39,7 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
-        <Link to="/" className="mb-6 flex items-center">
+        <Link to="/" className="mb-6 flex items-center justify-center">
           <img src={logoUGMCR} alt="Campus Ride" className="h-10 w-auto object-contain" />
         </Link>
         <h1 className="text-2xl font-bold">Masuk</h1>
