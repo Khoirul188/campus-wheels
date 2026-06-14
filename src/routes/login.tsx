@@ -39,11 +39,8 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-sm">
-        <Link to="/" className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Car className="h-5 w-5" />
-          </div>
-          <span className="font-bold">CampusRide</span>
+        <Link to="/" className="mb-6 flex items-center">
+          <img src={logoUGMCR} alt="Campus Ride" className="h-10 w-auto object-contain" />
         </Link>
         <h1 className="text-2xl font-bold">Masuk</h1>
         <p className="mt-1 text-sm text-muted-foreground">Gunakan akun kampus Anda</p>
