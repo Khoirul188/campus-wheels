@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { Car, CalendarCheck, ShieldCheck, Users } from "lucide-react";
+import { CalendarCheck, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoUGMCR from "@/assets/logoUGMCR.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
