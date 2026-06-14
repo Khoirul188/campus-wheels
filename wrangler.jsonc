@@ -7,5 +7,6 @@
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS"
-  }
+  },
+  "no_bundle": true
 }
