@@ -21,11 +21,8 @@ function Index() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Car className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-bold text-foreground">CampusRide</span>
+          <Link to="/" className="flex items-center">
+            <img src={logoUGMCR} alt="Campus Ride" className="h-10 w-auto object-contain" />
           </Link>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost"><Link to="/login">Masuk</Link></Button>
