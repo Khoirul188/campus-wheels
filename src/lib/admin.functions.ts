@@ -7,14 +7,17 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 export const claimFirstAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { count, error: cErr } = await supabase
+    const { userId } = context;
+    // Pakai supabaseAdmin (service role) supaya bisa cek & insert sebelum
+    // ada admin sama sekali - kalau pakai client biasa (RLS aktif), insert ini
+    // akan selalu ditolak policy "Admin insert roles" karena user belum admin.
+    const { count, error: cErr } = await supabaseAdmin
       .from("user_roles")
       .select("id", { count: "exact", head: true })
       .eq("role", "admin");
     if (cErr) throw new Error(cErr.message);
     if ((count ?? 0) > 0) throw new Error("Admin sudah ada. Hubungi admin untuk promosi.");
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: userId, role: "admin" });
     if (error) throw new Error(error.message);

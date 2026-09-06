@@ -14,7 +14,13 @@ export interface AuthState {
 
 export function useAuth(): AuthState {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  // sessionLoading: menandai proses ambil sesi login sudah selesai atau belum.
+  // rolesLoading: menandai proses ambil role & profile (untuk sesi saat ini) sudah selesai atau belum.
+  // "loading" yang dikembalikan ke komponen adalah gabungan keduanya, supaya
+  // halaman tidak sempat menampilkan "Akses ditolak" sesaat sebelum roles-nya
+  // benar-benar selesai dimuat dari server (race condition).
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [profile, setProfile] = useState<AuthState["profile"]>(null);
 
@@ -24,7 +30,7 @@ export function useAuth(): AuthState {
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setLoading(false);
+      setSessionLoading(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -33,24 +39,27 @@ export function useAuth(): AuthState {
     if (!session?.user) {
       setRoles([]);
       setProfile(null);
+      setRolesLoading(false);
       return;
     }
+    setRolesLoading(true);
     const uid = session.user.id;
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .then(({ data }) => setRoles((data ?? []).map((r) => r.role as AppRole)));
-    supabase
-      .from("profiles")
-      .select("full_name, nim_nip, phone")
-      .eq("id", uid)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data ?? null));
+    Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase
+        .from("profiles")
+        .select("full_name, nim_nip, phone")
+        .eq("id", uid)
+        .maybeSingle(),
+    ]).then(([rolesRes, profileRes]) => {
+      setRoles((rolesRes.data ?? []).map((r) => r.role as AppRole));
+      setProfile(profileRes.data ?? null);
+      setRolesLoading(false);
+    });
   }, [session?.user?.id]);
 
   return {
-    loading,
+    loading: sessionLoading || rolesLoading,
     session,
     user: session?.user ?? null,
     roles,

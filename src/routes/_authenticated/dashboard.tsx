@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function DashboardPage() {
-  const { user, roles, profile } = useAuth();
+  const { user, roles, profile, loading } = useAuth();
   const isStaff = hasAnyRole(roles, ["staf", "admin"]);
   const claim = useServerFn(claimFirstAdmin);
 
@@ -68,6 +68,8 @@ function DashboardPage() {
       toast.error(e.message);
     }
   }
+
+  if (loading) return <div className="text-muted-foreground">Memuat...</div>;
 
   return (
     <div className="space-y-6">
