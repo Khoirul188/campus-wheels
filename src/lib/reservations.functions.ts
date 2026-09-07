@@ -176,6 +176,7 @@ export const completeReservation = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         photo_path: z.string().min(1).max(500),
+        return_notes: z.string().trim().max(500).optional().nullable(),
       })
       .parse(input),
   )
@@ -183,7 +184,7 @@ export const completeReservation = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: r, error } = await supabase
       .from("reservations")
-      .select("id, user_id, status")
+      .select("id, user_id, status, actual_pickup_time")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
@@ -219,8 +220,13 @@ export const completeReservation = createServerFn({ method: "POST" })
       .from("reservations")
       .update({
         status: "completed",
+        // Kalau tahap "Mulai Pinjam" tidak pernah diklik (langsung dari approved
+        // ke completed), catat waktu pengambilan aktual sekarang juga supaya
+        // data tidak bolong (NULL).
+        actual_pickup_time: r.actual_pickup_time ?? nowIso,
         actual_return_time: nowIso,
         return_proof_url: data.photo_path,
+        return_notes: data.return_notes?.trim() || null,
         return_photo_uploaded_at: nowIso,
         return_photo_uploaded_by: userId,
         returned_by: staff ? userId : null,

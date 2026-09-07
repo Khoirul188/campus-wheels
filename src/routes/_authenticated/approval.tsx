@@ -41,6 +41,7 @@ function ApprovalPage() {
   const [tab, setTab] = useState("pending");
   const [returnFor, setReturnFor] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [returnNotes, setReturnNotes] = useState("");
   const [uploading, setUploading] = useState(false);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -115,6 +116,7 @@ function ApprovalPage() {
   function openReturn(id: string) {
     setReturnFor(id);
     setFile(null);
+    setReturnNotes("");
   }
 
   async function onSubmitReturn() {
@@ -123,19 +125,25 @@ function ApprovalPage() {
     if (!allowed.includes(file.type)) return toast.error("Format harus JPG/JPEG/PNG.");
     if (file.size > 5 * 1024 * 1024) return toast.error("Ukuran melebihi 5 MB.");
     setUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${returnFor}/${crypto.randomUUID()}.${ext}`;
+    let uploaded = false;
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${returnFor}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("return-proofs")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
-      await complete({ data: { id: returnFor, photo_path: path } });
+      uploaded = true;
+      await complete({ data: { id: returnFor, photo_path: path, return_notes: returnNotes } });
       toast.success("Pengembalian terverifikasi");
       setReturnFor(null);
       setFile(null);
+      setReturnNotes("");
       qc.invalidateQueries({ queryKey: ["approval-list"] });
     } catch (e: any) {
+      if (uploaded) {
+        await supabase.storage.from("return-proofs").remove([path]).catch(() => {});
+      }
       toast.error(e.message || "Gagal");
     } finally {
       setUploading(false);
@@ -198,7 +206,15 @@ function ApprovalPage() {
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={r.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={r.status} />
+                      {(r.status === "approved" || r.status === "in_use") &&
+                        new Date(r.end_at) < new Date() && (
+                          <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
+                            Terlambat
+                          </span>
+                        )}
+                    </div>
                     <div className="flex flex-wrap justify-end gap-2">
                       {r.status === "pending" && (
                         <>
@@ -225,6 +241,11 @@ function ApprovalPage() {
                     {r.status === "completed" && r.actual_return_time && (
                       <div className="text-xs text-muted-foreground">
                         Kembali: {formatDateTime(r.actual_return_time)}
+                      </div>
+                    )}
+                    {r.status === "completed" && r.return_notes && (
+                      <div className="max-w-[220px] text-right text-xs text-muted-foreground">
+                        <strong>Catatan:</strong> {r.return_notes}
                       </div>
                     )}
                   </div>
@@ -261,6 +282,12 @@ function ApprovalPage() {
             {file && (
               <img src={URL.createObjectURL(file)} alt="Pratinjau" className="max-h-64 w-full rounded-md object-contain bg-muted" />
             )}
+            <Textarea
+              value={returnNotes}
+              onChange={(e) => setReturnNotes(e.target.value)}
+              rows={3}
+              placeholder="Catatan kondisi kendaraan (opsional)"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnFor(null)} disabled={uploading}>Batal</Button>

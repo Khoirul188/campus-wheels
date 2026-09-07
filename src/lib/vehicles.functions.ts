@@ -68,9 +68,15 @@ export const deleteVehicle = createServerFn({ method: "POST" })
   });
 
 /**
- * Returns vehicle IDs that are currently in use (approved or in_use reservations
- * overlapping `now()`). Uses the admin client to bypass RLS so all authenticated
- * users see real-time availability without exposing reservation details.
+ * Returns vehicle IDs that are currently in use: reservasi berstatus approved
+ * atau in_use YANG SUDAH DIMULAI (start_at <= sekarang).
+ *
+ * PENTING: sengaja TIDAK mengecek end_at <= sekarang. Kalau jadwal sudah
+ * lewat tapi peminjam belum klik "Kembalikan" (completeReservation belum
+ * dipanggil, status masih approved/in_use), kendaraan harus TETAP terhitung
+ * dipakai — bukan otomatis "tersedia" lagi cuma karena jadwal rencana sudah
+ * habis. Kendaraan baru lepas dari daftar ini begitu status benar-benar
+ * berubah jadi completed/cancelled/rejected.
  */
 export const getActiveVehicleIds = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -80,26 +86,26 @@ export const getActiveVehicleIds = createServerFn({ method: "GET" })
       .from("reservations")
       .select("vehicle_id")
       .in("status", ["approved", "in_use"])
-      .lte("start_at", nowIso)
-      .gt("end_at", nowIso);
+      .lte("start_at", nowIso);
     if (error) throw new Error(error.message);
     return { ids: Array.from(new Set((data ?? []).map((r: any) => r.vehicle_id))) };
   });
 
 /**
- * Returns upcoming reservation windows for a single vehicle (no PII).
+ * Returns jadwal reservasi aktif (belum selesai) untuk satu kendaraan.
+ * Sengaja tidak difilter end_at >= sekarang, supaya reservasi yang sudah
+ * lewat jadwal tapi belum "completed" (terlambat dikembalikan) tetap
+ * kelihatan di jadwal, bukan hilang begitu saja.
  */
 export const getVehicleSchedule = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ vehicle_id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
-    const nowIso = new Date().toISOString();
     const { data: rows, error } = await supabaseAdmin
       .from("reservations")
       .select("id, start_at, end_at, status")
       .eq("vehicle_id", data.vehicle_id)
       .in("status", ["pending", "approved", "in_use"])
-      .gte("end_at", nowIso)
       .order("start_at");
     if (error) throw new Error(error.message);
     return { schedule: rows ?? [] };

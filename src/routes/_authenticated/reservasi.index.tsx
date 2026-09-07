@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/reservasi/")({
@@ -36,6 +37,7 @@ function ReservationsPage() {
   const complete = useServerFn(completeReservation);
   const [returnFor, setReturnFor] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [returnNotes, setReturnNotes] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const { data } = useQuery({
@@ -76,6 +78,7 @@ function ReservationsPage() {
   function openReturn(id: string) {
     setReturnFor(id);
     setFile(null);
+    setReturnNotes("");
   }
 
   async function onSubmitReturn() {
@@ -90,19 +93,27 @@ function ReservationsPage() {
       return;
     }
     setUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${returnFor}/${crypto.randomUUID()}.${ext}`;
+    let uploaded = false;
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${returnFor}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("return-proofs")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
-      await complete({ data: { id: returnFor, photo_path: path } });
+      uploaded = true;
+      await complete({ data: { id: returnFor, photo_path: path, return_notes: returnNotes } });
       toast.success("Pengembalian berhasil dicatat");
       setReturnFor(null);
       setFile(null);
+      setReturnNotes("");
       qc.invalidateQueries({ queryKey: ["my-reservations"] });
     } catch (e: any) {
+      // Kalau foto sudah keupload tapi update status gagal, hapus lagi fotonya
+      // supaya tidak nyangkut jadi file sampah di storage.
+      if (uploaded) {
+        await supabase.storage.from("return-proofs").remove([path]).catch(() => {});
+      }
       toast.error(e.message || "Gagal mengunggah foto");
     } finally {
       setUploading(false);
@@ -142,7 +153,15 @@ function ReservationsPage() {
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <StatusBadge status={r.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={r.status} />
+                    {(r.status === "approved" || r.status === "in_use") &&
+                      new Date(r.end_at) < new Date() && (
+                        <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive">
+                          Terlambat
+                        </span>
+                      )}
+                  </div>
                   <div className="flex flex-wrap justify-end gap-2">
                     {(r.status === "pending" || r.status === "approved") && (
                       <Button size="sm" variant="outline" onClick={() => onCancel(r.id)}>Batalkan</Button>
@@ -182,6 +201,12 @@ function ReservationsPage() {
                 className="max-h-64 w-full rounded-md object-contain bg-muted"
               />
             )}
+            <Textarea
+              value={returnNotes}
+              onChange={(e) => setReturnNotes(e.target.value)}
+              rows={3}
+              placeholder="Catatan kondisi kendaraan (opsional), misal: bensin diisi penuh, ada lecet kecil di bumper belakang"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnFor(null)} disabled={uploading}>Batal</Button>
